@@ -1,0 +1,204 @@
+name: Build wheels
+
+on:
+  push:
+    tags: '*'
+  pull_request: ~
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate_wheels_matrix:
+    name: Generate wheels matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.set-matrix.outputs.include }}
+      mypy_version: ${{ steps.mypy-version.outputs.mypy_version }}
+      mypy_sha: ${{ steps.mypy-version.outputs.mypy_sha }}
+      tag_version: ${{ steps.tag-version.outputs.tag_version }}
+    steps:
+      - uses: actions/checkout@v4.1.1
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5.0.0
+        name: Install Python
+        with:
+          python-version: "3.11"
+      - name: Install cibuildwheel and pypyp
+        run: |
+          pipx install cibuildwheel==2.16.5
+          pipx install pypyp==1
+      - id: set-matrix
+        run: |
+          MATRIX=$(
+            {
+              cibuildwheel --config-file=cibuildwheel.toml --print-build-identifiers --platform linux mypy \
+              | pyp 'json.dumps({"only": x, "os": "ubuntu-latest"})' \
+              && cibuildwheel --config-file=cibuildwheel.toml --print-build-identifiers --platform macos mypy \
+              | pyp 'json.dumps({"only": x, "os": "macos-14"})' \
+              && cibuildwheel --config-file=cibuildwheel.toml --print-build-identifiers --platform windows mypy \
+              | pyp 'json.dumps({"only": x, "os": "windows-latest"})'
+            } | pyp 'json.dumps(list(map(json.loads, lines)))'
+          )
+          echo "include=$MATRIX" | tee -a $GITHUB_OUTPUT
+        env:
+          CIBW_ARCHS_LINUX: x86_64
+          CIBW_ARCHS_MACOS: x86_64 arm64
+          CIBW_ARCHS_WINDOWS: AMD64
+      - name: Get mypy version
+        id: mypy-version
+        run: |
+          cd mypy
+          mypy_version=$(python -c "from mypy.version import __version__; print(__version__)")
+          mypy_sha=$(python -c "from mypy.git import git_revision as rev; print(rev('.').decode('utf-8'))")
+          echo "mypy_version: ${mypy_version}"
+          echo "mypy_version=${mypy_version}" >> $GITHUB_OUTPUT
+          echo "mypy_sha: ${mypy_sha}"
+          echo "mypy_sha=${mypy_sha}" >> $GITHUB_OUTPUT
+      - name: Get version tag
+        id: tag-version
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "github_ref: ${{ github.ref }}"
+            tag_version=$(echo "${{ github.ref }}" | cut -d "/" -f3)
+          else
+            echo "Pull request or workflow dispatch"
+            echo "Set placeholder version"
+            tag_version=1.0.0
+          fi
+          echo "tag_version: ${tag_version}"
+          echo "tag_version=${tag_version}" >> $GITHUB_OUTPUT
+
+  build_wheels:
+    name: Build ${{ matrix.only }}
+    needs: generate_wheels_matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.generate_wheels_matrix.outputs.include) }}
+    steps:
+      - uses: actions/checkout@v4.1.1
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5.0.0
+        name: Install Python
+        with:
+          python-version: "3.11"
+      - name: Modify setup.py
+        run: |
+          pip install -U -r requirements.txt
+          python scripts/modify_setup.py ${{ needs.generate_wheels_matrix.outputs.tag_version }}
+      - uses: pypa/cibuildwheel@v2.16.5
+        with:
+          config-file: cibuildwheel.toml
+          package-dir: mypy
+          only: ${{ matrix.only }}
+      - uses: actions/upload-artifact@v4.3.1
+        with:
+          name: dist-${{ matrix.only }}
+          path: ./wheelhouse/*.whl
+          overwrite: true
+
+  build_sdist_python_wheel:
+    name: sdist and python wheel
+    needs: generate_wheels_matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.1
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5.0.0
+        name: Install Python
+        with:
+          python-version: "3.11"
+      - name: Modify setup.py
+        run: |
+          pip install -U -r requirements.txt
+          python scripts/modify_setup.py ${{ needs.generate_wheels_matrix.outputs.tag_version }}
+      - name: Build sdist and wheel
+        run: |
+          cd mypy
+          pip install --upgrade setuptools build
+          python -m build
+      - uses: actions/upload-artifact@v4.3.1
+        with:
+          name: dist-sdist_python_wheel
+          path: |
+            mypy/dist/*.whl
+            mypy/dist/*.tar.gz
+          overwrite: true
+
+  release:
+    name: Upload release to PyPI
+    needs:
+      - generate_wheels_matrix
+      - build_wheels
+      - build_sdist_python_wheel
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    environment:
+      name: PyPI
+      url: https://pypi.org/project/mypy-dev/
+    permissions:
+      contents: write  # Required to upload release assets
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4.1.2
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/setup-python@v5.0.0
+        name: Install Python
+        with:
+          python-version: "3.11"
+      - name: Install twine
+        run: |
+          pip install twine
+      - name: Release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // https://github.com/actions/upload-release-asset/issues/47
+            const fs = require('fs').promises;
+            const { repo: { owner, repo }, sha } = context;
+            const tagName = process.env.GITHUB_REF.split("/").pop();
+            const body = (
+              'Tracking mypy version: `${{ needs.generate_wheels_matrix.outputs.mypy_version }}`'
+              + '\n\n' + 'https://github.com/python/mypy/commit/${{ needs.generate_wheels_matrix.outputs.mypy_sha }}'
+            );
+
+            console.log('environment', process.versions);
+            console.log({ owner, repo, sha });
+
+            const release = await github.rest.repos.createRelease({
+              owner, repo,
+              tag_name: tagName,
+              target_commitish: sha,
+              name: tagName,
+              body: body
+            });
+
+            console.log('created release', { release });
+
+            for (let file of await fs.readdir('dist')) {
+              console.log('uploading', file);
+
+              await github.rest.repos.uploadReleaseAsset({
+                owner, repo,
+                release_id: release.data.id,
+                name: file,
+                data: await fs.readFile(`./dist/${file}`)
+              });
+            }
+      - name: Upload to PyPI
+        env:
+          TWINE_REPOSITORY: pypi
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          twine upload --verbose dist/*
