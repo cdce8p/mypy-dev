@@ -1,0 +1,36 @@
+[tool.cibuildwheel]
+
+build-frontend = "build"
+
+# Don't build 32-bit wheels or PyPy
+skip = [
+  "*-manylinux_i686",
+  "*-musllinux*",
+  "*-win32",
+  "pp*",
+]
+
+build-verbosity = 1
+
+linux.before-all = [
+  "yum install -y llvm-toolset-7.0 || yum -v install -y llvm-toolset-7.0",
+]
+
+[tool.cibuildwheel.config-settings]
+--build-option = "--use-mypyc"
+
+[tool.cibuildwheel.environment]
+MYPYC_OPT_LEVEL = "3"
+MYPYC_DEBUG_LEVEL = "0"
+
+[tool.cibuildwheel.windows.environment]
+MYPYC_OPT_LEVEL = "2"
+MYPYC_DEBUG_LEVEL = "0"
+
+[tool.cibuildwheel.linux.environment]
+# Add llvm paths to environment to eliminate scl usage (like manylinux image does for gcc toolset).
+MYPYC_OPT_LEVEL = "3"
+MYPYC_DEBUG_LEVEL = "0"
+PATH="$PATH:/opt/rh/llvm-toolset-7.0/root/usr/bin"
+LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/rh/llvm-toolset-7.0/root/usr/lib64"
+CC="clang"
