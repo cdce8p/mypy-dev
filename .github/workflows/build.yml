@@ -63,12 +63,19 @@ jobs:
           if [[ "${{ github.event_name }}" == "push" ]]; then
             echo "github_ref: ${{ github.ref }}"
             tag_version=$(echo "${{ github.ref }}" | cut -d "/" -f3)
+            echo "tag_version: ${tag_version}"
+            mypy_base=$(echo "${{ steps.mypy-version.outputs.mypy_version }}" | cut -d "+" -f1)
+            echo "mypy_base: ${mypy_base}"
+            if [[ "${tag_version}" != "${mypy_base}"* ]]; then
+              echo "Base tag_version does not match base mypy_version!"
+              exit 1
+            fi
           else
             echo "Pull request or workflow dispatch"
             echo "Set placeholder version"
             tag_version=1.0.0
+            echo "tag_version: ${tag_version}"
           fi
-          echo "tag_version: ${tag_version}"
           echo "tag_version=${tag_version}" >> $GITHUB_OUTPUT
 
   build_wheels:
