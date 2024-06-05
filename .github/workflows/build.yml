@@ -139,7 +139,7 @@ jobs:
           overwrite: true
 
   release:
-    name: Upload release to PyPI
+    name: Create release and upload assets
     needs:
       - generate_wheels_matrix
       - build_wheels
