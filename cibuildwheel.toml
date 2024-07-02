@@ -12,8 +12,9 @@ skip = [
 
 build-verbosity = 1
 
+linux.manylinux-x86_64-image = "manylinux_2_28"
 linux.before-all = [
-  "yum install -y llvm-toolset-7.0 || yum -v install -y llvm-toolset-7.0",
+  "yum install -y llvm-toolset || yum -v install -y llvm-toolset",
 ]
 
 [tool.cibuildwheel.config-settings]
@@ -31,6 +32,6 @@ MYPYC_DEBUG_LEVEL = "0"
 # Add llvm paths to environment to eliminate scl usage (like manylinux image does for gcc toolset).
 MYPYC_OPT_LEVEL = "3"
 MYPYC_DEBUG_LEVEL = "0"
-PATH="$PATH:/opt/rh/llvm-toolset-7.0/root/usr/bin"
-LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/rh/llvm-toolset-7.0/root/usr/lib64"
+PATH="$PATH:/opt/rh/llvm-toolset-17.0/root/usr/bin"
+LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/rh/llvm-toolset-17.0/root/usr/lib64"
 CC="clang"
