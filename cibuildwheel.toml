@@ -14,7 +14,6 @@ build-verbosity = 1
 
 linux.manylinux-x86_64-image = "manylinux_2_28"
 linux.before-all = [
-  "git config --global --add safe.directory {project}/mypy",
   "yum install -y llvm-toolset || yum -v install -y llvm-toolset",
 ]
 
