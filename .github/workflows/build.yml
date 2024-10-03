@@ -177,7 +177,7 @@ jobs:
             const tagName = "1.12.0a5-missing";
             let response = null;
             let assetNames = [];
-            let releaseId = null;
+            let releaseId;
             try {
               response = await github.rest.repos.getReleaseByTag({
                 owner, repo,
@@ -203,6 +203,7 @@ jobs:
               // });
               const release = 'Some release data';
               console.log('created release', { release });
+              releaseId = 1;
             }
 
             for (let file of await fs.readdir('dist')) {
@@ -211,7 +212,7 @@ jobs:
                 continue;
               }
               console.log('uploading', file);
-              console.log('release', release);
+              console.log('releaseId', releaseId);
               continue;
 
               await github.rest.repos.uploadReleaseAsset({
