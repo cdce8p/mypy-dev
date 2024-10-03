@@ -9,6 +9,9 @@ skip = [
   "*-win32",
   "pp*",
 ]
+build = [
+  "cp313-macosx_arm64",
+]
 
 build-verbosity = 1
 

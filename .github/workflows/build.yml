@@ -13,6 +13,7 @@ jobs:
   generate_wheels_matrix:
     name: Generate wheels matrix
     runs-on: ubuntu-latest
+    if: false
     outputs:
       include: ${{ steps.set-matrix.outputs.include }}
       mypy_version: ${{ steps.mypy-version.outputs.mypy_version }}
@@ -111,8 +112,9 @@ jobs:
 
   build_sdist_python_wheel:
     name: sdist and python wheel
-    needs: generate_wheels_matrix
+    # needs: generate_wheels_matrix
     runs-on: ubuntu-latest
+    if: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -124,7 +126,8 @@ jobs:
       - name: Modify setup.py
         run: |
           pip install -U -r requirements.txt
-          python scripts/modify_setup.py ${{ needs.generate_wheels_matrix.outputs.tag_version }}
+          # python scripts/modify_setup.py ${{ needs.generate_wheels_matrix.outputs.tag_version }}
+          python scripts/modify_setup.py 1.12.0a5
       - name: Build sdist and wheel
         run: |
           cd mypy
@@ -140,14 +143,14 @@ jobs:
 
   release:
     name: Create release and upload assets
-    needs:
-      - generate_wheels_matrix
-      - build_wheels
-      - build_sdist_python_wheel
+    # needs:
+    #   - generate_wheels_matrix
+    #   - build_wheels
+    #   - build_sdist_python_wheel
     runs-on: ubuntu-latest
-    environment:
-      name: Release
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    # environment:
+    #   name: Release
+    # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write  # Required to upload release assets
     steps:
@@ -165,41 +168,50 @@ jobs:
             // https://github.com/actions/upload-release-asset/issues/47
             const fs = require('fs').promises;
             const { repo: { owner, repo }, sha } = context;
-            const tagName = process.env.GITHUB_REF.split("/").pop();
-            const body = (
-              'Tracking mypy version: `${{ needs.generate_wheels_matrix.outputs.mypy_version }}`'
-              + '\n\n' + 'https://github.com/python/mypy/commit/${{ needs.generate_wheels_matrix.outputs.mypy_sha }}'
-            );
+            // const tagName = process.env.GITHUB_REF.split("/").pop();
+            // const body = (
+            //   'Tracking mypy version: `${{ needs.generate_wheels_matrix.outputs.mypy_version }}`'
+            //   + '\n\n' + 'https://github.com/python/mypy/commit/${{ needs.generate_wheels_matrix.outputs.mypy_sha }}'
+            // );
 
-            console.log('environment', process.versions);
-            console.log({ owner, repo, sha });
-
-            const release = await github.rest.repos.createRelease({
+            const tagName = "1.12.0a5";
+            const response = await github.rest.repos.getReleaseByTag({
               owner, repo,
-              tag_name: tagName,
-              target_commitish: sha,
-              name: tagName,
-              body: body
+              tag: tagName,
             });
+            console.log(response);
 
-            console.log('created release', { release });
 
-            for (let file of await fs.readdir('dist')) {
-              console.log('uploading', file);
+            // console.log('environment', process.versions);
+            // console.log({ owner, repo, sha });
 
-              await github.rest.repos.uploadReleaseAsset({
-                owner, repo,
-                release_id: release.data.id,
-                name: file,
-                data: await fs.readFile(`./dist/${file}`)
-              });
-            }
+            // const release = await github.rest.repos.createRelease({
+            //   owner, repo,
+            //   tag_name: tagName,
+            //   target_commitish: sha,
+            //   name: tagName,
+            //   body: body
+            // });
+
+            // console.log('created release', { release });
+
+            //for (let file of await fs.readdir('dist')) {
+            //  console.log('uploading', file);
+
+            //  await github.rest.repos.uploadReleaseAsset({
+            //    owner, repo,
+            //    release_id: release.data.id,
+            //    name: file,
+            //    data: await fs.readFile(`./dist/${file}`)
+            //  });
+            //}
 
   upload:
     name: Upload release to PyPI
     needs:
       - release
     runs-on: ubuntu-latest
+    if: false
     environment:
       name: PyPI
       url: https://pypi.org/project/mypy-dev/
@@ -223,4 +235,4 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          twine upload --verbose dist/*
+          twine upload --verbose --skip-existing dist/*
