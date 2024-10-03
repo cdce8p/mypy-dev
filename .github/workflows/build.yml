@@ -174,7 +174,7 @@ jobs:
             //   + '\n\n' + 'https://github.com/python/mypy/commit/${{ needs.generate_wheels_matrix.outputs.mypy_sha }}'
             // );
 
-            const tagName = "1.12.0a5";
+            const tagName = "1.12.0a5-missing";
             let response = null;
             let assetNames = [];
             try {
@@ -184,7 +184,7 @@ jobs:
               });
               assetNames = response.data.assets.map((asset) => asset.name);
               console.log('Found an existing release');
-            } catch (error) {}
+            } catch (ResponseError) {}
 
             console.log('environment', process.versions);
             console.log({ owner, repo, sha });
