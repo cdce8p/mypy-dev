@@ -180,6 +180,10 @@ jobs:
               tag: tagName,
             });
             console.log(response);
+            console.log("--- ---");
+            console.log(response.data.assets);
+            console.log("--- ---");
+            console.log(response.data.assets.name);
 
 
             // console.log('environment', process.versions);
