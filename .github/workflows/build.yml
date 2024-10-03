@@ -177,12 +177,14 @@ jobs:
             const tagName = "1.12.0a5-missing";
             let response = null;
             let assetNames = [];
+            let releaseId = null;
             try {
               response = await github.rest.repos.getReleaseByTag({
                 owner, repo,
                 tag: tagName,
               });
               assetNames = response.data.assets.map((asset) => asset.name);
+              releaseId = response.data.id;
               console.log('Found an existing release');
             } catch (e) {}
 
@@ -199,8 +201,8 @@ jobs:
               //   name: tagName,
               //   body: body,
               // });
-              // console.log('created release', { release });
-              console.log('created release');
+              const release = 'Some release data';
+              console.log('created release', { release });
             }
 
             for (let file of await fs.readdir('dist')) {
@@ -209,6 +211,7 @@ jobs:
                 continue;
               }
               console.log('uploading', file);
+              console.log('release', release);
               continue;
 
               await github.rest.repos.uploadReleaseAsset({
