@@ -175,20 +175,21 @@ jobs:
             // );
 
             const tagName = "1.12.0a5";
+            let response = null;
+            let assetNames = [];
             try {
-              const response = await github.rest.repos.getReleaseByTag({
+              response = await github.rest.repos.getReleaseByTag({
                 owner, repo,
                 tag: tagName,
               });
-              const assetNames = response.data.assets.map((asset) => asset.name);
+              assetNames = response.data.assets.map((asset) => asset.name);
               console.log('Found an existing release');
-            } catch (error) {
-              const response = null;
-              const assetNames = [];
-            }
+            } catch (error) {}
 
             console.log('environment', process.versions);
             console.log({ owner, repo, sha });
+            console.log('response', response);
+            console.log('assetNames', assetNames);
 
             if (response == null) {
               // const release = await github.rest.repos.createRelease({
