@@ -168,41 +168,39 @@ jobs:
             // https://github.com/actions/upload-release-asset/issues/47
             const fs = require('fs').promises;
             const { repo: { owner, repo }, sha } = context;
+            console.log('environment', process.versions);
+            console.log({ owner, repo, sha });
+
             // const tagName = process.env.GITHUB_REF.split("/").pop();
             // const body = (
             //   'Tracking mypy version: `${{ needs.generate_wheels_matrix.outputs.mypy_version }}`'
             //   + '\n\n' + 'https://github.com/python/mypy/commit/${{ needs.generate_wheels_matrix.outputs.mypy_sha }}'
             // );
 
-            const tagName = "1.12.0a5-missing";
-            let response = null;
-            let assetNames = [];
+            const tagName = "1.12.0a5";
             let releaseId;
+            let assetNames = [];
             try {
-              response = await github.rest.repos.getReleaseByTag({
+              const response = await github.rest.repos.getReleaseByTag({
                 owner, repo,
                 tag: tagName,
               });
               assetNames = response.data.assets.map((asset) => asset.name);
               releaseId = response.data.id;
-              console.log('Found an existing release');
+              console.log('Found an existing release', releaseId);
+              console.log('Found existing release assets', assetNames);
             } catch (e) {}
 
-            console.log('environment', process.versions);
-            console.log({ owner, repo, sha });
-            console.log('response', response);
-            console.log('assetNames', assetNames);
-
-            if (response == null) {
+            if (releaseId == undefined) {
               // const release = await github.rest.repos.createRelease({
               //   owner, repo,
               //   tag_name: tagName,
-              //   target_commitish: sha,
               //   name: tagName,
               //   body: body,
               // });
               const release = 'Some release data';
               console.log('created release', { release });
+              // releaseId = release.data.id;
               releaseId = 1;
             }
 
@@ -217,7 +215,7 @@ jobs:
 
               await github.rest.repos.uploadReleaseAsset({
                 owner, repo,
-                release_id: release.data.id,
+                release_id: releaseId,
                 name: file,
                 data: await fs.readFile(`./dist/${file}`)
               });
