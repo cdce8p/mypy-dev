@@ -208,7 +208,7 @@ jobs:
                 continue;
               }
               console.log('uploading', file);
-              continue
+              continue;
 
               await github.rest.repos.uploadReleaseAsset({
                 owner, repo,
