@@ -184,7 +184,7 @@ jobs:
               });
               assetNames = response.data.assets.map((asset) => asset.name);
               console.log('Found an existing release');
-            } catch (ResponseError) {}
+            } catch (e) {}
 
             console.log('environment', process.versions);
             console.log({ owner, repo, sha });
@@ -199,9 +199,9 @@ jobs:
               //   name: tagName,
               //   body: body,
               // });
-              console.log('created release', { release });
+              // console.log('created release', { release });
+              console.log('created release');
             }
-
 
             for (let file of await fs.readdir('dist')) {
               if (assetNames.find((name) => name == file) != undefined) {
