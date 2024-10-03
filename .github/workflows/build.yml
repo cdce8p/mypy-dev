@@ -175,10 +175,15 @@ jobs:
             // );
 
             const tagName = "1.12.0a5-missing";
-            const response = await github.rest.repos.getReleaseByTag({
-              owner, repo,
-              tag: tagName,
-            });
+            try {
+              const response = await github.rest.repos.getReleaseByTag({
+                owner, repo,
+                tag: tagName,
+              });
+            } catch (error) {
+              console.log("Release not found");
+            }
+
             console.log(response);
             console.log("--- ---");
             const assetNames = response.data.assets.map((asset) => asset.name);
