@@ -165,31 +165,49 @@ jobs:
             // https://github.com/actions/upload-release-asset/issues/47
             const fs = require('fs').promises;
             const { repo: { owner, repo }, sha } = context;
+            console.log('environment', process.versions);
+            console.log({ owner, repo, sha });
+
+            let releaseId;
+            let assetNames = [];
             const tagName = process.env.GITHUB_REF.split("/").pop();
             const body = (
               'Tracking mypy version: `${{ needs.generate_wheels_matrix.outputs.mypy_version }}`'
               + '\n\n' + 'https://github.com/python/mypy/commit/${{ needs.generate_wheels_matrix.outputs.mypy_sha }}'
             );
 
-            console.log('environment', process.versions);
-            console.log({ owner, repo, sha });
+            try {
+              const response = await github.rest.repos.getReleaseByTag({
+                owner, repo,
+                tag: tagName,
+              });
+              assetNames = response.data.assets.map((asset) => asset.name);
+              releaseId = response.data.id;
+              console.log('found an existing release', releaseId);
+              console.log('found existing release assets', assetNames);
+            } catch (e) {}
 
-            const release = await github.rest.repos.createRelease({
-              owner, repo,
-              tag_name: tagName,
-              target_commitish: sha,
-              name: tagName,
-              body: body
-            });
-
-            console.log('created release', { release });
+            if (releaseId == undefined) {
+              const release = await github.rest.repos.createRelease({
+                owner, repo,
+                tag_name: tagName,
+                name: tagName,
+                body: body,
+              });
+              console.log('created release', { release });
+              releaseId = release.data.id;
+            }
 
             for (let file of await fs.readdir('dist')) {
+              if (assetNames.find((name) => name == file) != undefined) {
+                console.log('asset already exists, skipping', file)
+                continue;
+              }
               console.log('uploading', file);
 
               await github.rest.repos.uploadReleaseAsset({
                 owner, repo,
-                release_id: release.data.id,
+                release_id: releaseId,
                 name: file,
                 data: await fs.readFile(`./dist/${file}`)
               });
@@ -223,4 +241,4 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          twine upload --verbose dist/*
+          twine upload --verbose --skip-existing dist/*
