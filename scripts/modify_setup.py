@@ -9,32 +9,27 @@ import sys
 
 from packaging.version import InvalidVersion, Version, parse
 
-file = Path(__file__).parents[1] / "mypy/setup.py"
+setup_py_file = Path(__file__).parents[1] / "mypy/setup.py"
+pyproject_file = Path(__file__).parents[1] / "mypy/pyproject.toml"
 
 long_desc_pat = re.compile(r"(long_description = \"\"\")(?:.|\n)*(\"\"\"\.lstrip\(\))")
 long_desc_replace = r"\g<1>\nDevelopment releases for mypy.\n\nUse at your own risk!\n\g<2>"
-name_pat = re.compile(r"(    name=\")[\w-]+(\",)")
+name_pat = re.compile(r"(name\s*=\s*\")[\w-]+(\")")
 name_replace = r"\g<1>mypy-dev\g<2>"
-version_pat = re.compile(r"(    version=).+(,)")
-url_pat = re.compile(r"    url=\".+\",\n")
-project_url_repo_pat = re.compile(r"(        \"Repository\": \")[\w:\/\.]+(\",)")
+version_pat = re.compile(r"(version=)[^,]+(,)")
+homepage_pat = re.compile(r"Homepage\s+=\s+\".+\"\n")
+project_url_repo_pat = re.compile(r"(Repository\s+=\s+\")[\w:\/\.]+(\")")
 project_url_repo_replace = r"\g<1>https://github.com/cdce8p/mypy-dev\g<2>"
-project_url_changelog_pat = re.compile(r"        \"Changelog\": \"[\w:\/\.]+\",\n")
+project_url_changelog_pat = re.compile(r"Changelog\s+=\s+\"[\w:\/\.]+\"\n")
 
 
 def modify_setup_py(version: Version) -> tuple[str, int]:
-    orig_data = data = file.read_text()
+    orig_data = data = setup_py_file.read_text()
     res = 0
     # long_description
     data = long_desc_pat.sub(long_desc_replace, data, 1)
     if orig_data == data:
         print("ERROR: Could not replace 'long_description'")
-        res = 1
-    # name
-    orig_data = data
-    data = name_pat.sub(name_replace, data, 1)
-    if orig_data == data:
-        print("ERROR: Could not replace 'name'")
         res = 1
     # version
     orig_data = data
@@ -42,29 +37,43 @@ def modify_setup_py(version: Version) -> tuple[str, int]:
     if orig_data == data:
         print("ERROR: Could not replace 'version'")
         res = 1
-    # url
+    return data, res
+
+
+def modify_pyproject() -> tuple[str, int]:
+    orig_data = data = pyproject_file.read_text()
+    res = 0
+    # pyproject.name
     orig_data = data
-    data = url_pat.sub("", data, 1)
+    data = name_pat.sub(name_replace, data, 1)
     if orig_data == data:
-        print("ERROR: Could not remove 'url'")
+        print("ERROR: Could not replace 'project.name'")
         res = 1
-    # project_urls - Repository
+    # project.urls.Repository
     orig_data = data
     data = project_url_repo_pat.sub(project_url_repo_replace, data, 1)
     if orig_data == data:
-        print("ERROR: Could not replace 'project_urls' - 'Repository'")
+        print("ERROR: Could not replace 'project.urls.Repository'")
         res = 1
-    # project_urls - Changelog
+    # project.urls.Homepage
+    orig_data = data
+    data = homepage_pat.sub("", data, 1)
+    if orig_data == data:
+        print("ERROR: Could not remove 'project.urls.Homepage'")
+        res = 1
+    # project.urls.Changelog
     orig_data = data
     data = project_url_changelog_pat.sub("", data, 1)
     if orig_data == data:
-        print("ERROR: Could not remove 'project_urls' - 'Changelog'")
+        print("ERROR: Could not remove 'project.urls.Changelog'")
         res = 1
     return data, res
 
 
 def git_set_assume_unchanged() -> None:
-    subprocess.check_output(["git", "-C", "mypy", "update-index", "--assume-unchanged", "setup.py"])
+    subprocess.check_output([
+        "git", "-C", "mypy", "update-index", "--assume-unchanged", "setup.py", "pyproject.toml"
+    ])
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -79,16 +88,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     print(f"Version: {version}")
 
-    if not file.is_file():
+    if not setup_py_file.is_file() or not pyproject_file.is_file():
         print("ERROR: Submodule not initialized")
         return 1
 
-    data, res = modify_setup_py(version)
-    if 0 and res == 1:
+    setup_py_data, res = modify_setup_py(version)
+    if res == 1:
         return 1
 
-    print("Write updated file")
-    file.write_text(data)
+    print("Write updated setup.py")
+    setup_py_file.write_text(setup_py_data)
+
+    pyproject_data, res = modify_pyproject()
+    if res == 1:
+        return 1
+
+    print("Write updated pyproject.toml")
+    pyproject_file.write_text(pyproject_data)
 
     print("Update index - assume-unchanged")
     git_set_assume_unchanged()
