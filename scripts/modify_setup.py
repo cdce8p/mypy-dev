@@ -12,8 +12,12 @@ from packaging.version import InvalidVersion, Version, parse
 setup_py_file = Path(__file__).parents[1] / "mypy/setup.py"
 pyproject_file = Path(__file__).parents[1] / "mypy/pyproject.toml"
 
-long_desc_pat = re.compile(r"(long_description = \"\"\")(?:.|\n)*(\"\"\"\.lstrip\(\))")
-long_desc_replace = r"\g<1>\nDevelopment releases for mypy.\n\nUse at your own risk!\n\g<2>"
+readme_pat = re.compile(
+    r"(readme\s*=\s*\{\s*text\s*=\s*\"\"\")"
+    r"(?:.|\n)*"
+    r"(\"\"\",\s*content-type\s*=\s*\"text\/x-rst\"\})"
+)
+readme_replace = r"\g<1>\nDevelopment releases for mypy.\n\nUse at your own risk!\n\g<2>"
 name_pat = re.compile(r"(name\s*=\s*\")[\w-]+(\")")
 name_replace = r"\g<1>mypy-dev\g<2>"
 version_pat = re.compile(r"(version=)[^,]+(,)")
@@ -26,11 +30,6 @@ project_url_changelog_pat = re.compile(r"Changelog\s+=\s+\"[\w:\/\.]+\"\n")
 def modify_setup_py(version: Version) -> tuple[str, int]:
     orig_data = data = setup_py_file.read_text()
     res = 0
-    # long_description
-    data = long_desc_pat.sub(long_desc_replace, data, 1)
-    if orig_data == data:
-        print("ERROR: Could not replace 'long_description'")
-        res = 1
     # version
     orig_data = data
     data = version_pat.sub(rf'\g<1>"{version}"\g<2>', data ,1)
@@ -49,6 +48,10 @@ def modify_pyproject() -> tuple[str, int]:
     if orig_data == data:
         print("ERROR: Could not replace 'project.name'")
         res = 1
+    orig_data = data
+    data = readme_pat.sub(readme_replace, data, 1)
+    if orig_data == data:
+        print("ERROR: Could not replace 'project.readme.text'")
     # project.urls.Repository
     orig_data = data
     data = project_url_repo_pat.sub(project_url_repo_replace, data, 1)
