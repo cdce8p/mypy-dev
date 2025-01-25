@@ -34,8 +34,10 @@ jobs:
         run: |
           MATRIX=$(
             {
-              cibuildwheel --config-file=cibuildwheel.toml --print-build-identifiers --platform linux mypy \
+              cibuildwheel --config-file=cibuildwheel.toml --print-build-identifiers --platform linux --archs x86_64 mypy \
               | pyp 'json.dumps({"only": x, "os": "ubuntu-latest"})' \
+              && cibuildwheel --config-file=cibuildwheel.toml --print-build-identifiers --platform linux --archs aarch64 mypy \
+              | pyp 'json.dumps({"only": x, "os": "ubuntu-24.04-arm"})' \
               && cibuildwheel --config-file=cibuildwheel.toml --print-build-identifiers --platform macos mypy \
               | pyp 'json.dumps({"only": x, "os": "macos-14"})' \
               && cibuildwheel --config-file=cibuildwheel.toml --print-build-identifiers --platform windows mypy \
@@ -44,7 +46,6 @@ jobs:
           )
           echo "include=$MATRIX" | tee -a $GITHUB_OUTPUT
         env:
-          CIBW_ARCHS_LINUX: x86_64
           CIBW_ARCHS_MACOS: x86_64 arm64
           CIBW_ARCHS_WINDOWS: AMD64
       - name: Get mypy version
