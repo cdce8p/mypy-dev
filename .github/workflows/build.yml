@@ -146,9 +146,9 @@ jobs:
       - build_wheels
       - build_sdist_python_wheel
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     environment:
       name: Release
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write  # Required to upload release assets
     steps:
@@ -222,6 +222,8 @@ jobs:
     environment:
       name: PyPI
       url: https://pypi.org/project/mypy-dev/
+    permissions:
+      id-token: write  # Required for publishing with OIDC to PyPI
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -229,17 +231,7 @@ jobs:
           pattern: dist-*
           path: dist
           merge-multiple: true
-      - uses: actions/setup-python@v5
-        name: Install Python
-        with:
-          python-version: "3.13"
-      - name: Install twine
-        run: |
-          pip install twine
       - name: Upload to PyPI
-        env:
-          TWINE_REPOSITORY: pypi
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          twine upload --verbose --skip-existing dist/*
+        uses: pypa/gh-action-pypi-publish@v1.12.4
+        with:
+          skip-existing: true
