@@ -28,7 +28,7 @@ jobs:
           python-version: "3.13"
       - name: Install cibuildwheel and pypyp
         run: |
-          pipx install cibuildwheel==2.23.1
+          pipx install cibuildwheel==2.23.2
           pipx install pypyp==1.2.0
       - id: set-matrix
         run: |
