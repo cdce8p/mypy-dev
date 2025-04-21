@@ -12,6 +12,9 @@ updates:
     rebase-strategy: "disabled"
     # Always use only the latest version
     versioning-strategy: increase
+    # Maintain allow list to prevent updates to mypy requirements
+    allow:
+      - dependency-name: "packaging"
 
   - package-ecosystem: "github-actions"
     directory: "/"

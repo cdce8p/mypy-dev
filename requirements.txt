@@ -1,1 +1,2 @@
+# Update dependabot allow list when changing the requirements
 packaging==25.0
