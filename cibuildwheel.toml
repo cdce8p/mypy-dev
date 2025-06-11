@@ -2,12 +2,11 @@
 
 build-frontend = "build"
 
-# Don't build 32-bit wheels or PyPy
+enable = []
+
 skip = [
-  "*-manylinux_i686",
   "*-musllinux*",
   "*-win32",
-  "pp*",
 ]
 
 build-verbosity = 1
