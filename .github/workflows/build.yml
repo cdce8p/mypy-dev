@@ -28,7 +28,7 @@ jobs:
           python-version: "3.13"
       - name: Install cibuildwheel and pypyp
         run: |
-          pipx install cibuildwheel==3.0.0
+          pipx install cibuildwheel==3.0.1
           pipx install pypyp==1.2.0
       - id: set-matrix
         run: |
@@ -99,7 +99,7 @@ jobs:
         run: |
           pip install -U -r requirements.txt
           python scripts/modify_setup.py ${{ needs.generate_wheels_matrix.outputs.tag_version }}
-      - uses: pypa/cibuildwheel@v3.0.0
+      - uses: pypa/cibuildwheel@v3.0.1
         with:
           config-file: cibuildwheel.toml
           package-dir: mypy
