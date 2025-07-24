@@ -99,7 +99,7 @@ jobs:
         run: |
           pip install -U -r requirements.txt
           python scripts/modify_setup.py ${{ needs.generate_wheels_matrix.outputs.tag_version }}
-      - uses: pypa/cibuildwheel@v3.0.1
+      - uses: pypa/cibuildwheel@v3.1.0
         with:
           config-file: cibuildwheel.toml
           package-dir: mypy
