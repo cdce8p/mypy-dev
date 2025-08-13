@@ -19,7 +19,7 @@ jobs:
       mypy_sha: ${{ steps.mypy-version.outputs.mypy_sha }}
       tag_version: ${{ steps.tag-version.outputs.tag_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - uses: actions/setup-python@v5
@@ -88,7 +88,7 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.generate_wheels_matrix.outputs.include) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - uses: actions/setup-python@v5
@@ -115,7 +115,7 @@ jobs:
     needs: generate_wheels_matrix
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
       - uses: actions/setup-python@v5
