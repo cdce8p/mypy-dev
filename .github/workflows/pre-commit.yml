@@ -1,0 +1,24 @@
+name: Pre-commit mirror update
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build wheels"]
+    types: ["completed"]
+    branches: ["main"]
+
+jobs:
+  pre-commit-update:
+    name: Trigger pre-commit mirror update
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Trigger repository_dispatch event"
+        env:
+          GH_TOKEN: ${{ secrets.PRE_COMMIT_TOKEN }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/cdce8p/mypy-dev-pre-commit/dispatches \
+            -f 'event_type=pre-commit-mirror-update'
