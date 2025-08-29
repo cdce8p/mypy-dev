@@ -5,7 +5,7 @@ on:
   workflow_run:
     workflows: ["Build wheels"]
     types: ["completed"]
-    branches: ["main"]
+    branches-ignore: ["dependabot/**"]
 
 jobs:
   pre-commit-update:
