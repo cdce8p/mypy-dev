@@ -57,7 +57,7 @@ jobs:
       - name: Commit and push
         run: |
           git add --update
-          # git commit -m "Update mypy commit"
+          git commit -m "Update mypy commit"
           tag_name="${{ steps.next.outputs.version }}"
           git tag "${tag_name}"
           git push origin main "${tag_name}"
