@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  DEFAULT_PYTHON: "3.13"
+
+jobs:
+  tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+      - name: Install test requirements
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements_test.txt
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          pytest tests/

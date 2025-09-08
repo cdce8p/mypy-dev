@@ -1,0 +1,63 @@
+name: Tag version
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref"
+        type: string
+      beta:
+        description: "Beta release"
+        type: boolean
+        default: false
+
+env:
+  DEFAULT_PYTHON: "3.13"
+
+jobs:
+  tag_version:
+    name: Tag new mypy-dev version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+      - uses: actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b # v2.1.1
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+          permission-contents: write # push branch to Github
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: recursive
+          token: ${{ steps.app-token.outputs.token }}
+      - name: Set git config
+        run: |
+          git config --global user.name "${{ vars.BOT_NAME }}"
+          git config --global user.email "${{ vars.BOT_EMAIL }}"
+      - name: Fetch and checkout
+        env:
+          GIT_ADVICE: 0
+        run: |
+          git -C mypy fetch origin -t master
+          git -C mypy checkout ${{ inputs.ref || 'origin/master' }}
+      - name: Get next tag version
+        id: next
+        run: |
+          if [[ "${{ inputs.beta }}" == 'true' ]]; then
+            args="--beta"
+          fi
+          version=$(python scripts/next_version.py ${args})
+          echo "Next version: ${version}"
+          echo "version=${version}" >> $GITHUB_OUTPUT
+      - name: Commit and push
+        run: |
+          git add --update
+          # git commit -m "Update mypy commit"
+          tag_name="${{ steps.next.outputs.version }}"
+          git tag "${tag_name}"
+          git push origin main "${tag_name}"
