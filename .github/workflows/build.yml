@@ -107,7 +107,7 @@ jobs:
           config-file: cibuildwheel.toml
           package-dir: mypy
           only: ${{ matrix.only }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dist-${{ matrix.only }}
           path: ./wheelhouse/*.whl
@@ -134,7 +134,7 @@ jobs:
           cd mypy
           pip install --upgrade setuptools build
           python -m build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: dist-sdist_python_wheel
           path: |
