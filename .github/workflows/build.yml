@@ -156,7 +156,7 @@ jobs:
       contents: write  # Required to upload release assets
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: dist-*
           path: dist
@@ -229,7 +229,7 @@ jobs:
       id-token: write  # Required for publishing with OIDC to PyPI
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: dist-*
           path: dist
