@@ -5,7 +5,7 @@ build-frontend = "build"
 enable = []
 
 skip = [
-  "cp31?t-*",
+  "cp313t-*",
   "*-musllinux*",
   "*-win32",
 ]
