@@ -102,7 +102,7 @@ jobs:
         run: |
           pip install -U -r requirements.txt
           python scripts/modify_setup.py ${{ needs.generate_wheels_matrix.outputs.tag_version }}
-      - uses: pypa/cibuildwheel@v4.3.4
+      - uses: pypa/cibuildwheel@v4.3.5
         # Update pin in 'generate_wheels_matrix' when bumping the version
         with:
           config-file: cibuildwheel.toml
